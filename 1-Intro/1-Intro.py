@@ -183,7 +183,8 @@ def filter_color_video():
 
     print("[INFO] Webcam berhasil terhubung!")
     print("[PETUNJUK] Geser trackbar untuk menyesuaikan warna target.")
-    print("[PETUNJUK] Tekan 'q' atau tombol ESC pada keyboard untuk keluar.")
+    print("[PETUNJUK] Tekan 's' pada keyboard untuk menyimpan snapshot frame kapan saja.")
+    print("[PETUNJUK] Tekan 'q' atau tombol ESC untuk keluar (frame saat tombol ditekan otomatis disimpan ke file).")
 
     while True:
         ret, frame = cap.read()
@@ -228,17 +229,25 @@ def filter_color_video():
         # Skala tampilan gabungan agar pas di layar
         display_combined = cv2.resize(display_combined, (960, 320))
         cv2.imshow(window_name, display_combined)
+        last_display = display_combined.copy()
 
-        out_vid_path = os.path.join(BASE_DIR, "hasil_filter_warna_video.png")
-        if not os.path.exists(out_vid_path):
-            cv2.imwrite(out_vid_path, display_combined)
-            print(f"[INFO] Cuplikan video filter disimpan ke '{out_vid_path}'")
-
+        # Simpan jika mode non-interaktif
         if os.environ.get("NON_INTERACTIVE"):
+            out_vid_path = os.path.join(BASE_DIR, "hasil_filter_warna_video.png")
+            cv2.imwrite(out_vid_path, last_display)
             break
 
         key = cv2.waitKey(1) & 0xFF
-        if key == ord('q') or key == 27:
+        # Tekan 's' untuk snapshot manual sewaktu-waktu
+        if key == ord('s'):
+            out_vid_path = os.path.join(BASE_DIR, "hasil_filter_warna_video.png")
+            cv2.imwrite(out_vid_path, last_display)
+            print(f"[INFO] Snapshot manual berhasil disimpan ke '{out_vid_path}'!")
+        elif key == ord('q') or key == 27:
+            # Simpan frame tepat saat tombol 'q' atau ESC ditekan
+            out_vid_path = os.path.join(BASE_DIR, "hasil_filter_warna_video.png")
+            cv2.imwrite(out_vid_path, last_display)
+            print(f"[INFO] Frame saat tombol 'q' ditekan berhasil disimpan ke '{out_vid_path}'!")
             break
 
     cap.release()
@@ -287,18 +296,23 @@ def _jalankan_simulasi_filter_video():
         mask_bgr = cv2.cvtColor(mask, cv2.COLOR_GRAY2BGR)
         combined = np.hstack([frame, mask_bgr, result])
 
-        out_sim_path = os.path.join(BASE_DIR, "hasil_filter_warna_video.png")
-        if frame_count == 0 and not os.path.exists(out_sim_path):
-            cv2.imwrite(out_sim_path, combined)
-            print(f"[INFO] Cuplikan filter video disimpan ke '{out_sim_path}'")
-
+        last_sim_frame = combined.copy()
         cv2.imshow(window_name, combined)
 
         if os.environ.get("NON_INTERACTIVE"):
+            out_sim_path = os.path.join(BASE_DIR, "hasil_filter_warna_video.png")
+            cv2.imwrite(out_sim_path, last_sim_frame)
             break
 
         key = cv2.waitKey(30) & 0xFF
-        if key == ord('q') or key == 27:
+        if key == ord('s'):
+            out_sim_path = os.path.join(BASE_DIR, "hasil_filter_warna_video.png")
+            cv2.imwrite(out_sim_path, last_sim_frame)
+            print(f"[INFO] Snapshot simulasi berhasil disimpan ke '{out_sim_path}'!")
+        elif key == ord('q') or key == 27:
+            out_sim_path = os.path.join(BASE_DIR, "hasil_filter_warna_video.png")
+            cv2.imwrite(out_sim_path, last_sim_frame)
+            print(f"[INFO] Frame saat tombol 'q' ditekan berhasil disimpan ke '{out_sim_path}'!")
             break
         frame_count += 1
 
