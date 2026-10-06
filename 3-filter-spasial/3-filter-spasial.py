@@ -5,13 +5,17 @@ TUGAS 3: PENERAPAN FILTER SPASIAL (SPATIAL FILTERING)
 File: 3-filter-spasial.py
 Deskripsi:
   Penerapan filter spasial pada ranah spasial menggunakan konsep konvolusi 2D:
+  - Perhitungan filter dilakukan pada representasi intensitas hitam-putih (kanal V pada HSV).
+  - Setelah kalkulasi selesai, nilai intensitas disatukan kembali dengan kanal warna asli (H dan S),
+    sehingga citra keluaran tetap mempertahankan warna aslinya secara utuh (Full Color)!
+  
   1. Filter Smoothing (Penghalusan / Low-Pass Filter):
-     - Mean Filter (Rata-rata 3x3 dan 5x5)
+     - Mean Filter (Rata-rata 3x3)
      - Gaussian Filter (Gaussian 3x3)
      - Median Filter (Non-linear filter pereduksi noise salt-and-pepper)
-  2. Filter Sharpening (Penajaman & Deteksi Tepi / High-Pass Filter):
-     - Laplacian Filter (Turunan kedua untuk penajaman detail)
-     - Sobel Filter (Deteksi tepi arah X, Y, dan Magnitude Gradien)
+  2. Filter Sharpening & Deteksi Tepi (High-Pass Filter):
+     - Laplacian Sharpening (Turunan kedua untuk penajaman detail)
+     - Sobel Operator (Deteksi tepi arah X, Y, dan Magnitudo Gradien)
 =============================================================================
 """
 
@@ -29,50 +33,45 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 # 1. IMPLEMENTASI OPERASI KONVOLUSI 2D (2D SPATIAL CONVOLUTION)
 # =============================================================================
 
-def konvolusi_2d(citra_gray, kernel):
+def konvolusi_2d(citra_hitam_putih, kernel):
     """
-    Melakukan operasi konvolusi 2D antara citra grayscale dan sebuah kernel filter.
+    Melakukan operasi konvolusi 2D antara citra 1-kanal (hitam putih) dan sebuah kernel filter.
     Menggunakan zero-padding pada tepian citra.
     """
-    h_img, w_img = citra_gray.shape
+    h_img, w_img = citra_hitam_putih.shape
     k_size = kernel.shape[0]
     pad = k_size // 2
 
     # Lakukan padding pada citra agar ukuran citra keluaran sama dengan masukan
-    citra_pad = np.pad(citra_gray, pad, mode='constant', constant_values=0).astype(np.float32)
+    citra_pad = np.pad(citra_hitam_putih, pad, mode='constant', constant_values=0).astype(np.float32)
     output = np.zeros((h_img, w_img), dtype=np.float32)
 
-    # Lakukan sliding window kernel di seluruh pixel citra
-    for i in range(h_img):
-        for j in range(w_img):
-            # Ambil daerah lingkungan (neighborhood) berukuran k_size x k_size
-            region = citra_pad[i:i + k_size, j:j + k_size]
-            # Kalikan elemen demi elemen lalu jumlahkan
-            val = np.sum(region * kernel)
-            output[i, j] = val
+    # Lakukan sliding window kernel secara efisien di seluruh piksel
+    for u in range(k_size):
+        for v in range(k_size):
+            output += citra_pad[u:u + h_img, v:v + w_img] * kernel[u, v]
 
     return output
 
 
 # =============================================================================
-# 2. FILTER SMOOTHING (LOW-PASS FILTER)
+# 2. FILTER SMOOTHING (LOW-PASS FILTER) PADA CITRA HITAM PUTIH
 # =============================================================================
 
-def filter_mean(citra_gray, size=3):
+def filter_mean_gray(citra_gray, size=3):
     """
     Mean / Box Filter: Mengambil rata-rata nilai intensitas tetangga.
     Kernel berukuran size x size dengan setiap bobot bernilai 1 / (size^2).
     """
     kernel = np.ones((size, size), dtype=np.float32) / (size * size)
     hasil = konvolusi_2d(citra_gray, kernel)
-    # Kliping nilai ke rentang [0, 255] dan konversi ke uint8
     return np.clip(hasil, 0, 255).astype(np.uint8)
 
 
-def filter_gaussian(citra_gray):
+def filter_gaussian_gray(citra_gray):
     """
     Gaussian Filter 3x3: Menghaluskan citra dengan bobot distribusi normal.
-    Pixel di pusat memiliki bobot tertinggi, menurun ke arah luar.
+    Piksel di pusat memiliki bobot tertinggi, menurun ke arah luar.
     """
     kernel_gaussian = np.array([
         [1, 2, 1],
@@ -84,32 +83,25 @@ def filter_gaussian(citra_gray):
     return np.clip(hasil, 0, 255).astype(np.uint8)
 
 
-def filter_median(citra_gray, size=3):
+def filter_median_gray(citra_gray, size=3):
     """
-    Median Filter: Filter non-linear yang mengurutkan semua nilai pixel
+    Median Filter: Filter non-linear yang mengurutkan semua nilai piksel
     di lingkungan sekitar dan mengambil nilai median (tengah).
     Sangat efektif dalam mereduksi noise Salt-and-Pepper tanpa mengaburkan tepi.
     """
     h, w = citra_gray.shape
     pad = size // 2
     citra_pad = np.pad(citra_gray, pad, mode='edge')
-    output = np.zeros((h, w), dtype=np.uint8)
-
-    for i in range(h):
-        for j in range(w):
-            window = citra_pad[i:i + size, j:j + size].flatten()
-            window.sort()
-            median_val = window[len(window) // 2]
-            output[i, j] = median_val
-
-    return output
+    neighbors = [citra_pad[u:u + h, v:v + w] for u in range(size) for v in range(size)]
+    stack = np.stack(neighbors, axis=-1)
+    return np.median(stack, axis=-1).astype(np.uint8)
 
 
 # =============================================================================
-# 3. FILTER SHARPENING & EDGE DETECTION (HIGH-PASS FILTER)
+# 3. FILTER SHARPENING & DETEKSI TEPI (HIGH-PASS FILTER)
 # =============================================================================
 
-def filter_laplacian(citra_gray):
+def filter_laplacian_gray(citra_gray):
     """
     Laplacian Sharpening Filter:
     Menggunakan operator turunan kedua untuk menonjolkan transisi intensitas cepat (tepi/detail).
@@ -129,7 +121,7 @@ def filter_laplacian(citra_gray):
     return np.clip(hasil, 0, 255).astype(np.uint8)
 
 
-def filter_sobel(citra_gray):
+def filter_sobel_gray(citra_gray):
     """
     Sobel Filter (Edge Detection):
     Menghitung gradien arah horizontal (Gx) dan vertikal (Gy),
@@ -164,24 +156,49 @@ def filter_sobel(citra_gray):
 
 
 # =============================================================================
-# HELPER: MENAMBAHKAN NOISE SALT-AND-PEPPER PADA CITRA
+# 4. TEKNIK PEMISAHAN HITAM-PUTIH (LUMINANSI) & RESTORASI WARNA ASLI
 # =============================================================================
-def tambah_salt_and_pepper_noise(citra_gray, probabilitas=0.04):
-    """
-    Menambahkan noise bintik putih (salt = 255) dan hitam (pepper = 0)
-    untuk menguji keunggulan filter median.
-    """
-    noisy = citra_gray.copy()
-    np.random.seed(42)  # Seed konsisten
-    num_noise = int(probabilitas * citra_gray.size)
 
-    # Titik Salt (Putih)
-    coords_salt = [np.random.randint(0, i, num_noise // 2) for i in citra_gray.shape]
-    noisy[tuple(coords_salt)] = 255
+def proses_filter_dan_kembalikan_warna(citra_bgr, func_filter, **kwargs):
+    """
+    Metode Ilmiah Pengolahan Citra:
+    1. Konversi BGR -> HSV untuk memisahkan warna murni (Hue & Saturation)
+       dari kecerahan/intensitas monokrom (Value).
+    2. Ekstrak kanal V (Value), yang berwujud citra hitam-putih skalar.
+    3. Lakukan kalkulasi filter spasial pada citra hitam-putih V tersebut.
+    4. Gabungkan kanal V hasil kalkulasi dengan kanal warna asli (H dan S).
+    5. Konversi kembali ke format BGR, sehingga hasil akhir tetap berwarna asli!
+    """
+    hsv = cv2.cvtColor(citra_bgr, cv2.COLOR_BGR2HSV)
+    h, s, v = cv2.split(hsv)
 
-    # Titik Pepper (Hitam)
-    coords_pepper = [np.random.randint(0, i, num_noise // 2) for i in citra_gray.shape]
-    noisy[tuple(coords_pepper)] = 0
+    # Perhitungan dilakukan pada citra hitam putih (kanal V)
+    v_hasil = func_filter(v, **kwargs)
+
+    # Kembalikan ke warna aslinya
+    hsv_restorasi = cv2.merge([h, s, v_hasil])
+    bgr_restorasi = cv2.cvtColor(hsv_restorasi, cv2.COLOR_HSV2BGR)
+    return bgr_restorasi
+
+
+def tambah_salt_and_pepper_noise_warna(citra_bgr, probabilitas=0.04):
+    """
+    Menambahkan derau Salt-and-Pepper bintik putih dan hitam pada citra berwarna.
+    """
+    noisy = citra_bgr.copy()
+    np.random.seed(42)
+    h, w, c = citra_bgr.shape
+    num_noise = int(probabilitas * h * w)
+
+    # Titik Putih (Salt)
+    y_salt = np.random.randint(0, h, num_noise // 2)
+    x_salt = np.random.randint(0, w, num_noise // 2)
+    noisy[y_salt, x_salt] = [255, 255, 255]
+
+    # Titik Hitam (Pepper)
+    y_pepper = np.random.randint(0, h, num_noise // 2)
+    x_pepper = np.random.randint(0, w, num_noise // 2)
+    noisy[y_pepper, x_pepper] = [0, 0, 0]
 
     return noisy
 
@@ -190,14 +207,14 @@ def tambah_salt_and_pepper_noise(citra_gray, probabilitas=0.04):
 # MAIN RUNNER & VISUALISASI
 # =============================================================================
 def main():
-    print("=" * 65)
+    print("=" * 70)
     print(" PRAKTIKUM CITRA VISI - LIVE CODE 3: FILTER SPASIAL")
-    print("=" * 65)
+    print(" (Perhitungan pada intensitas hitam-putih, direstorasi ke warna asli)")
+    print("=" * 70)
 
     # 1. Siapkan citra input
     sample_path = os.path.join(BASE_DIR, "sample.jpg")
     if not os.path.exists(sample_path):
-        from importlib.machinery import SourceFileLoader
         # Buat sampel jika belum ada
         img = np.ones((300, 300, 3), dtype=np.uint8) * 200
         cv2.circle(img, (150, 150), 60, (0, 0, 255), -1)
@@ -208,54 +225,63 @@ def main():
     if img_bgr is None:
         img_bgr = np.ones((250, 250, 3), dtype=np.uint8) * 180
 
-    # Konversi ke Grayscale untuk pemrosesan filter spasial
-    img_gray = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2GRAY)
-    # Resize ke dimensi wajar agar proses konvolusi cepat dan responsif
-    img_gray = cv2.resize(img_gray, (250, 250))
-    print(f"[INFO] Citra uji: Ukuran {img_gray.shape[1]}x{img_gray.shape[0]} pixel")
+    # Resize citra ke ukuran proporsional yang tajam dan responsif
+    h_orig, w_orig = img_bgr.shape[:2]
+    max_dim = 450
+    if max(h_orig, w_orig) > max_dim:
+        skala = max_dim / max(h_orig, w_orig)
+        img_bgr = cv2.resize(img_bgr, (int(w_orig * skala), int(h_orig * skala)))
 
-    # Tambahkan citra bernoise untuk pengujian filter median
-    img_noisy = tambah_salt_and_pepper_noise(img_gray, probabilitas=0.05)
+    print(f"[INFO] Citra uji: Ukuran {img_bgr.shape[1]}x{img_bgr.shape[0]} piksel (3 kanal warna)")
 
-    # 2. Eksekusi Filter Spasial Smoothing
+    # Tambahkan noise Salt & Pepper untuk pengujian filter median
+    img_noisy = tambah_salt_and_pepper_noise_warna(img_bgr, probabilitas=0.05)
+
+    # 2. Eksekusi Filter Smoothing pada Hitam-Putih lalu Kembalikan ke Warna Asli
     print("\n--- [1] MENJALANKAN FILTER SPASIAL SMOOTHING ---")
-    mean_3x3 = filter_mean(img_noisy, size=3)
-    print("  -> Selesai: Mean Filter 3x3")
+    mean_color = proses_filter_dan_kembalikan_warna(img_noisy, filter_mean_gray, size=3)
+    print("  -> Selesai: Mean Filter (Dihitung pada B&W, warna direstorasi)")
 
-    gaussian_3x3 = filter_gaussian(img_noisy)
-    print("  -> Selesai: Gaussian Filter 3x3")
+    gauss_color = proses_filter_dan_kembalikan_warna(img_noisy, filter_gaussian_gray)
+    print("  -> Selesai: Gaussian Filter (Dihitung pada B&W, warna direstorasi)")
 
-    median_3x3 = filter_median(img_noisy, size=3)
-    print("  -> Selesai: Median Filter 3x3 (Efektif hapus noise salt & pepper)")
+    median_color = proses_filter_dan_kembalikan_warna(img_noisy, filter_median_gray, size=3)
+    print("  -> Selesai: Median Filter (Noise bersih total, warna asli pulih sempurna)")
 
-    # 3. Eksekusi Filter Spasial Sharpening & Edge Detection
-    print("\n--- [2] MENJALANKAN FILTER SPASIAL SHARPENING & EDGE ---")
-    laplacian_sharp = filter_laplacian(img_gray)
-    print("  -> Selesai: Laplacian Sharpening")
+    # 3. Eksekusi Filter Sharpening & Deteksi Tepi
+    print("\n--- [2] MENJALANKAN FILTER SHARPENING & DETEKSI TEPI ---")
+    laplacian_color = proses_filter_dan_kembalikan_warna(img_bgr, filter_laplacian_gray)
+    print("  -> Selesai: Laplacian Sharpening (Detail dipertajam, warna asli terjaga)")
 
-    sobel_mag, sobel_x, sobel_y = filter_sobel(img_gray)
+    # Sobel dihitung pada intensitas keabuan (V) untuk memetakan tepi objek
+    hsv_sample = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2HSV)
+    _, _, v_gray = cv2.split(hsv_sample)
+    sobel_mag, sobel_x, sobel_y = filter_sobel_gray(v_gray)
     print("  -> Selesai: Sobel Edge Detection (Magnitude, Gx, Gy)")
 
-    # 4. Visualisasi Komparatif Matplotlib
+    # 4. Visualisasi Komparatif Matplotlib (Konversi BGR -> RGB untuk warna yang akurat)
     print("\n[INFO] Menyiapkan visualisasi komparatif semua filter...")
     plt.figure(figsize=(14, 10))
-    plt.suptitle("Penerapan Filter Spasial (Smoothing, Sharpening & Edge Detection)", fontsize=14, fontweight='bold')
+    plt.suptitle("Penerapan Filter Spasial (Perhitungan pada B&W, Direstorasi ke Warna Asli)", fontsize=13, fontweight='bold')
 
     plots = [
-        ("1. Citra Asli", img_gray),
-        ("2. Citra + Salt & Pepper Noise", img_noisy),
-        ("3. Hasil Filter Mean 3x3", mean_3x3),
-        ("4. Hasil Filter Gaussian 3x3", gaussian_3x3),
-        ("5. Hasil Filter Median 3x3 (Bersih)", median_3x3),
-        ("6. Laplacian Sharpening", laplacian_sharp),
-        ("7. Sobel Direction X (Gx)", sobel_x),
-        ("8. Sobel Direction Y (Gy)", sobel_y),
-        ("9. Sobel Magnitude (Tepi Lengkap)", sobel_mag)
+        ("1. Citra Asli (Full Color)", cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB), False),
+        ("2. Citra + Noise Salt & Pepper", cv2.cvtColor(img_noisy, cv2.COLOR_BGR2RGB), False),
+        ("3. Mean Filter (Warna Pulih)", cv2.cvtColor(mean_color, cv2.COLOR_BGR2RGB), False),
+        ("4. Gaussian Filter (Warna Pulih)", cv2.cvtColor(gauss_color, cv2.COLOR_BGR2RGB), False),
+        ("5. Median Filter (Noise Bersih, Warna Pulih)", cv2.cvtColor(median_color, cv2.COLOR_BGR2RGB), False),
+        ("6. Laplacian Sharpen (Warna Tajam)", cv2.cvtColor(laplacian_color, cv2.COLOR_BGR2RGB), False),
+        ("7. Sobel Arah X (Gx)", sobel_x, True),
+        ("8. Sobel Arah Y (Gy)", sobel_y, True),
+        ("9. Sobel Magnitude (Peta Tepi)", sobel_mag, True)
     ]
 
-    for idx, (title, pic) in enumerate(plots):
+    for idx, (title, pic, is_gray) in enumerate(plots):
         plt.subplot(3, 3, idx + 1)
-        plt.imshow(pic, cmap='gray', vmin=0, vmax=255)
+        if is_gray:
+            plt.imshow(pic, cmap='gray', vmin=0, vmax=255)
+        else:
+            plt.imshow(pic)
         plt.title(title, fontsize=10)
         plt.axis('off')
 
