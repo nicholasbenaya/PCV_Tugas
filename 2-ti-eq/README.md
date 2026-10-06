@@ -52,10 +52,10 @@ Tahapan perhitungan algoritma ekualisasi histogram manual:
 
 ## 🔬 Hasil Eksperimen
 
-### 1. Citra Masukan Kontras Rendah (Input)
-Citra yang digunakan memiliki rentang nilai intensitas yang sempit (kontras rendah di rentang $70 - 140$):
+### 1. Citra Masukan Ruangan Gelap (Input)
+Citra yang digunakan adalah foto ruangan nyata dalam kondisi gelap (*underexposed / low-light room*, resolusi $960 \times 1280$ piksel) dengan rata-rata intensitas sangat rendah ($\approx 12.6$ dari skala $255$):
 
-![Citra Kontras Rendah](low_contrast_sample.jpg)
+![Citra Ruangan Gelap](low_contrast_sample.jpg)
 
 ---
 
@@ -63,6 +63,12 @@ Citra yang digunakan memiliki rentang nilai intensitas yang sempit (kontras rend
 Hasil perbandingan 6 mode transformasi intensitas yang dihitung secara manual:
 
 ![Hasil Transformasi Intensitas](hasil_transformasi_intensitas.png)
+
+> **Analisis Transformasi Intensitas pada Ruangan Gelap:**
+> - **Log Transformation & Gamma ($\gamma = 0.5$):** Sangat efektif mengangkat intensitas piksel-piksel gelap sehingga objek di dalam ruangan yang tadinya tidak terlihat mulai tampak jelas.
+> - **Gamma ($\gamma = 2.0$):** Mempertegas area gelap/bayangan, membuat area yang minim cahaya semakin pekat.
+> - **Image Negative:** Membalik nilai piksel ($255 - r$), mengubah latar belakang yang gelap gulita menjadi terang sehingga kontur objek tampak seperti citra rontgen.
+> - **Contrast Stretching:** Meregangkan rentang dinamis intensitas piksel ke seluruh rentang $0 - 255$.
 
 ---
 
@@ -72,8 +78,9 @@ Perbandingan antara citra sebelum vs sesudah ekualisasi beserta grafik distribus
 ![Hasil Ekualisasi Histogram](hasil_ekualisasi_histogram.png)
 
 > **Analisis Grafik Histogram:**
-> - **Sebelum Ekualisasi (Histogram Abu-abu):** Distribusi frekuensi piksel menumpuk sempit di bagian tengah ($70 - 140$), membuat objek tampak samar dan kontrasnya buruk.
-> - **Setelah Ekualisasi Manual (Histogram Biru):** Distribusi frekuensi piksel telah diratakan secara linier ke seluruh skala penuh dari $0$ hingga $255$. Efek visualnya, objek dan latar belakang terlihat kontras, tegas, dan memiliki rentang dinamis yang optimal.
+> - **Sebelum Ekualisasi (Histogram Abu-abu):** Distribusi frekuensi piksel menumpuk ekstrem di area paling kiri (intensitas mendekati 0, gelap gulita). Mata manusia hampir tidak dapat membedakan objek di dalam ruangan karena minimnya perbedaan kontras antarpiksel.
+> - **Setelah Ekualisasi Manual (Histogram Biru):** Melalui perhitungan fungsi distribusi kumulatif (CDF) manual, probabilitas intensitas dipetakan ulang dan diratakan ke seluruh rentang dinamis $0 - 255$.
+> - **Dampak Visual:** Objek, kontur dinding, dan perabotan yang semula tersembunyi dalam kegelapan langsung terungkap dengan jelas dan tegas tanpa menggunakan fungsi bawaan `cv2.equalizeHist`.
 
 ---
 
