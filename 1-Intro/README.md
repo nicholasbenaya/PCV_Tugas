@@ -1,68 +1,69 @@
 # Laporan Tugas 1: Pengenalan Citra dan Video (Intro)
 
-Mata Kuliah: **Praktikum Pengolahan Citra dan Visi Komputer (PCV)**  
+Mata Kuliah: Praktikum Pengolahan Citra dan Visi Komputer (PCV)  
 Berkas Program: [`1-Intro.py`](1-Intro.py)
 
 ---
 
-## 📌 Ringkasan Tugas
-Pada tugas pertama ini, diimplementasikan fungsionalitas dasar pemrosesan citra digital dan streaming video menggunakan pustaka OpenCV dan Python:
-1. **Read Image**: Membaca citra dari berkas lokal dan mengekstrak metadatanya.
-2. **Show Image**: Menampilkan citra asli ke layar dalam jendela grafis GUI.
-3. **Filter Color Image**: Melakukan segmentasi warna tertentu (Biru dan Merah) pada citra diam berbasis ruang warna HSV.
-4. **Filter Color Video**: Membaca aliran video webcam secara *real-time*, menyediakan *Trackbar HSV* interaktif untuk tuning warna, serta menyimpan frame hasil saat tombol `'q'` atau `'s'` ditekan.
+## Ringkasan Tugas
+
+Implementasi dasar pemrosesan citra digital dan streaming video menggunakan OpenCV dan Python:
+1. **Read Image**: Membaca citra dari berkas lokal dan memeriksa metadatanya (resolusi, kanal warna, tipe data).
+2. **Show Image**: Menampilkan citra asli ke jendela grafis.
+3. **Filter Color Image**: Melakukan segmentasi warna (biru dan merah) pada citra diam dalam ruang warna HSV.
+4. **Filter Color Video**: Membaca aliran video webcam secara real-time, menyediakan trackbar HSV interaktif untuk penyesuaian ambang batas warna, serta menyimpan frame aktif saat tombol `'q'` atau `'s'` ditekan.
 
 ---
 
-## 🧠 Dasar Teori Singkat
+## Dasar Teori
 
-### Mengapa Menggunakan Ruang Warna HSV dibanding RGB/BGR?
-Pada ruang warna standar **BGR/RGB**, informasi kromatisitas (warna) dan luminansi (kecerahan/cahaya) saling bercampur pada ketiga kanal ($B, G, R$). Hal ini menyebabkan deteksi warna sangat rentan gagal jika terjadi perubahan pencahayaan, bayangan, atau pantulan cahaya.
+### Segmentasi Ruang Warna HSV dibanding RGB/BGR
+Pada ruang warna standar BGR/RGB, informasi kromatisitas (warna) dan luminansi (kecerahan) terdistribusi bersama di ketiga kanal ($B, G, R$). Kondisi ini menyebabkan segmentasi warna rentan terhadap fluktuasi pencahayaan dan bayangan.
 
-Pada ruang warna **HSV**:
-- **Hue ($H$)**: Menyatakan jenis warna murni dalam rentang sudut derajat (pada OpenCV diskalakan menjadi $0 - 179$).
-- **Saturation ($S$)**: Menyatakan tingkat kemurnian/kepekatan warna ($0 - 255$).
-- **Value ($V$)**: Menyatakan tingkat kecerahan/intensitas cahaya ($0 - 255$).
+Ruang warna HSV memisahkan komponen warna dari intensitas cahaya:
+- **Hue ($H$)**: Sudut representasi warna murni (pada OpenCV bernilai $0 - 179$).
+- **Saturation ($S$)**: Kemurnian atau kepekatan warna ($0 - 255$).
+- **Value ($V$)**: Kecerahan atau intensitas cahaya ($0 - 255$).
 
-Dengan memisahkan komponen warna ($H$) dari intensitas cahaya ($V$), kita dapat menentukan *threshold* warna tertentu secara stabil meskipun intensitas cahaya di ruangan berubah-ubah.
+Pemisahan ini memungkinkan penentuan ambang batas (*threshold*) warna pada rentang Hue dan Saturasi yang konsisten meskipun intensitas pencahayaan ruangan bervariasi.
 
 ---
 
-## 🔬 Hasil Eksperimen
+## Hasil Eksperimen
 
-### 1. Citra Masukan (Input)
-Citra sampel yang digunakan pada eksperimen:
+### 1. Citra Masukan
+Citra sampel yang digunakan pada pengujian:
 
 ![Citra Input](sample.jpg)
 
 ---
 
-### 2. Hasil Filter Warna pada Citra Diam
-Segmentasi warna Biru dan Merah dilakukan menggunakan `cv2.inRange()` dan operasi logika `cv2.bitwise_and()`.
+### 2. Segmentasi Warna pada Citra Diam
+Segmentasi warna biru dan merah dilakukan dengan `cv2.inRange()` dan operasi logika `cv2.bitwise_and()`.
 
 ![Hasil Filter Warna Gambar](hasil_filter_warna_gambar.png)
 
-> **Keterangan Panel:**
-> - Panel 1: Citra Asli (BGR)
-> - Panel 2: Mask Biner Warna Biru (putih = piksel target biru)
-> - Panel 3: Hasil Segmentasi Warna Biru
-> - Panel 4: Hasil Segmentasi Warna Merah
+Keterangan panel:
+- Panel 1: Citra asli (BGR).
+- Panel 2: Mask biner target warna biru (putih menunjukkan piksel yang memenuhi rentang ambang batas).
+- Panel 3: Hasil isolasi piksel warna biru.
+- Panel 4: Hasil isolasi piksel warna merah.
 
 ---
 
-### 3. Hasil Cuplikan Filter Warna Video (Webcam)
-Cuplikan frame *real-time* saat pengujian webcam dengan pengaturan *Trackbar HSV*:
+### 3. Cuplikan Segmentasi Warna Video (Webcam)
+Tangkapan layar saat pengujian webcam dengan penyesuaian trackbar HSV:
 
 ![Hasil Filter Video Webcam](hasil_filter_warna_video.png)
 
-> **Keterangan Tampilan:**
-> - Sisi Kiri: Frame Asli Webcam
-> - Sisi Tengah: Mask Biner Berdasarkan Nilai Trackbar HSV
-> - Sisi Kanan: Objek Berwarna yang Berhasil Diisolasi
+Keterangan tampilan:
+- Sisi kiri: Frame asli webcam.
+- Sisi tengah: Mask biner hasil ambang batas HSV.
+- Sisi kanan: Citra hasil segmentasi objek berwarna.
 
 ---
 
-## 🎥 Video Demonstrasi Real-Time
+## Video Demonstrasi Real-Time
 
 <!-- ================================================================= -->
 <!-- PETUNJUK CARA MELAMPIRKAN VIDEO PADA MARKDOWN GITHUB:             -->
@@ -81,30 +82,32 @@ Cuplikan frame *real-time* saat pengujian webcam dengan pengaturan *Trackbar HSV
 <!--    <video src="demo.mp4" controls width="100%"></video>          -->
 <!-- ================================================================= -->
 
-### 🎬 Rekaman Pengujian Video Webcam:
+### Rekaman Pengujian Video Webcam
 
 > [!NOTE]
-> Gantikan placeholder video di bawah ini dengan video rekaman pengujian webcam Anda sesuai petunjuk di atas.
+> Gantikan tautan atau berkas pada placeholder video di bawah ini dengan rekaman pengujian webcam Anda sesuai petunjuk di atas.
 
 <!-- >>> PLACEHOLDER VIDEO START <<< -->
 
 <div align="center">
   <video src="demo_video.mp4" controls="controls" width="80%">
-    Browser Anda tidak mendukung tag video. Silakan unduh berkas video secara langsung.
+    Browser Anda tidak mendukung tag video. Unduh berkas video secara langsung untuk memutar.
   </video>
-  <p><em>Video 1.1: Demonstrasi Segmentasi Warna Real-Time Menggunakan Slider Trackbar HSV</em></p>
+  <p><em>Video 1.1: Demonstrasi Segmentasi Warna Real-Time dengan Trackbar HSV</em></p>
 </div>
 
 <!-- >>> PLACEHOLDER VIDEO END <<< -->
 
 ---
 
-## 💻 Cara Menjalankan Berkas
-Pastikan berada di folder tugas ini, lalu jalankan:
+## Panduan Menjalankan Program
+
+Jalankan perintah berikut di terminal:
 ```bash
-python 1-Intro.py
+python 1-Intro/1-Intro.py
 ```
-* **Tombol Interaksi:**
-  * Geser slider trackbar di jendela video untuk mengatur rentang warna target.
-  * Tekan **`s`** untuk menyimpan snapshot gambar kapan saja.
-  * Tekan **`q`** atau **`ESC`** untuk keluar (frame aktif saat tombol ditekan akan otomatis tersimpan ke `hasil_filter_warna_video.png`).
+
+Kendali interaktif pada jendela webcam:
+- Geser slider trackbar untuk mengubah rentang warna target ($H_{min}, S_{min}, V_{min}$ dan $H_{max}, S_{max}, V_{max}$).
+- Tekan **`s`** untuk menyimpan snapshot frame aktif.
+- Tekan **`q`** atau **`ESC`** untuk keluar sekaligus menyimpan frame aktif ke `hasil_filter_warna_video.png`.

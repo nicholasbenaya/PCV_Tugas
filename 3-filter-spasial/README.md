@@ -1,28 +1,29 @@
 # Laporan Tugas 3: Penerapan Filter Spasial (Spatial Filtering)
 
-Mata Kuliah: **Praktikum Pengolahan Citra dan Visi Komputer (PCV)**  
+Mata Kuliah: Praktikum Pengolahan Citra dan Visi Komputer (PCV)  
 Berkas Program: [`3-filter-spasial.py`](3-filter-spasial.py)
 
 ---
 
-## 📌 Ringkasan Tugas & Pendekatan Ilmiah
-Filter spasial beroperasi langsung pada piksel citra menggunakan operasi konvolusi 2D atau pengurutan statistik nilai lokal.
+## Ringkasan Tugas dan Pendekatan Implementasi
 
-### 💡 Teknik Pemrosesan Intensitas & Restorasi Warna Asli:
-Untuk menjaga agar **warna asli citra tidak hilang / pudar**:
-1. **Pemisahan Intensitas:** Citra warna BGR dikonversi ke ruang warna **HSV** guna memisahkan komponen warna murni ($H$ = Hue, $S$ = Saturation) dari intensitas kecerahan monokrom ($V$ = Value / hitam-putih).
-2. **Kalkulasi pada Citra Hitam-Putih:** Seluruh operasi filter spasial (konvolusi Mean, Gaussian, Median, dan Laplacian) dihitung **pada kanal hitam-putih $V$**.
-3. **Restorasi Warna:** Nilai $V$ hasil kalkulasi disatukan kembali dengan kanal warna asli ($H$ dan $S$) lalu dikonversi kembali ke format BGR.
-4. **Hasil:** Citra keluaran tetap mempertahankan warna asli secara utuh (*Full Color*), sementara efek penghalusan, pereduksian derau, dan penajaman berhasil diterapkan dengan optimal!
+Filter spasial memproses piksel citra secara langsung berdasarkan nilai intensitas piksel tetangga melalui operasi konvolusi 2D atau pengurutan statistik lokal.
+
+### Pemisahan Intensitas dan Restorasi Warna Asli
+Penerapan filter spasial secara terpisah pada masing-masing kanal warna RGB dapat memicu pergeseran rona (*color shift*) atau perubahan saturasi warna. Untuk menghindari degradasi warna tersebut, digunakan pendekatan berbasis ruang warna HSV:
+1. **Pemisahan Kanal:** Citra BGR dikonversi ke HSV untuk memisahkan informasi kromatisitas ($H$ dan $S$) dari komponen intensitas kecerahan monokrom ($V$).
+2. **Pemrosesan pada Intensitas Monokrom:** Operasi konvolusi spasial (Mean, Gaussian, Median, dan Laplacian) diterapkan secara eksklusif pada kanal $V$.
+3. **Restorasi Warna:** Kanal $V$ yang telah difilter digabungkan kembali dengan kanal $H$ dan $S$ asli, kemudian dikonversi kembali ke BGR.
+4. **Hasil:** Citra keluaran memperoleh efek penghalusan atau penajaman pada intensitas luminansi dengan rona dan saturasi warna asli yang tetap terjaga utuh.
 
 ---
 
-## 🧠 Dasar Teori & Matriks Kernel
+## Dasar Teori dan Matriks Kernel
 
 ### 1. Konvolusi 2D Spasial
-Operasi konvolusi menggeser jendela matriks bobot (kernel $w$) berukuran $m \times n$ di atas citra intensitas $f(x,y)$:
+Operasi konvolusi diskret menggeser matriks kernel bobot $w$ berukuran $m \times n$ di atas bidang citra $f(x,y)$:
 $$g(x,y) = \sum_{s=-a}^a \sum_{t=-b}^b w(s,t) \cdot f(x+s, y+t)$$
-Pada tepian citra diterapkan teknik *padding* agar dimensi citra keluaran tetap sama dengan citra masukan.
+Batas tepi citra ditangani dengan teknik penambahan bantalan (*padding*) agar ukuran citra keluaran identik dengan citra masukan.
 
 ---
 
@@ -35,49 +36,49 @@ Pada tepian citra diterapkan teknik *padding* agar dimensi citra keluaran tetap 
   $$W_{gauss} = \frac{1}{16}\begin{bmatrix} 1 & 2 & 1 \\ 2 & 4 & 2 \\ 1 & 2 & 1 \end{bmatrix}$$
 
 * **Median Filter ($3\times3$):**
-  Mengambil semua 9 piksel di sekitar jendela lingkungan, mengurutkannya dari nilai terkecil ke terbesar, dan mengambil nilai tengahnya (elemen ke-5). Sangat efektif menghilangkan derau impulsif bintik putih dan hitam (*Salt-and-Pepper Noise*) tanpa mengaburkan tepi citra.
+  Mengambil 9 nilai intensitas pada jendela lingkungan, mengurutkannya secara menaik, lalu menetapkan nilai median (elemen ke-5) sebagai intensitas baru. Filter non-linier ini efektif mereduksi derau impulsif (*salt-and-pepper*) tanpa mengaburkan ketajaman tepi secara berlebih.
 
 * **Laplacian Sharpening Kernel ($3\times3$):**
   $$W_{laplacian} = \begin{bmatrix} 0 & -1 & 0 \\ -1 & 5 & -1 \\ 0 & -1 & 0 \end{bmatrix}$$
-  Matriks ini langsung menghasilkan citra yang telah dipertajam (*sharpened image*) dengan menambahkan turunan kedua tepi kembali ke citra asli.
+  Kernel ini menjumlahkan turunan kedua Laplacian dengan citra asli pada pusat piksel, mempertegas transisi intensitas tinggi pada tepi objek.
 
-* **Sobel Operator (Deteksi Tepi):**
+* **Operator Sobel (Deteksi Tepi):**
   $$G_x = \begin{bmatrix} -1 & 0 & 1 \\ -2 & 0 & 2 \\ -1 & 0 & 1 \end{bmatrix}, \quad G_y = \begin{bmatrix} -1 & -2 & -1 \\ 0 & 0 & 0 \\ 1 & 2 & 1 \end{bmatrix}$$
-  Magnitudo tepi dihitung dengan rumus:
+  Magnitudo gradien tepi dihitung dengan rumus:
   $$|G| = \sqrt{G_x^2 + G_y^2}$$
 
 ---
 
-## 🔬 Hasil Eksperimen
+## Hasil Eksperimen
 
-### 1. Citra Masukan (Input)
-Citra sampel berwarna asli yang digunakan pada pengujian:
+### 1. Citra Masukan
+Citra sampel berwarna yang digunakan dalam pengujian:
 
 ![Citra Input](sample.jpg)
 
 ---
 
-### 2. Hasil Perbandingan Filter Spasial (9 Panel)
-Grafik visualisasi komparatif yang menampilkan hasil evaluasi seluruh filter spasial:
+### 2. Komparasi Filter Spasial (9 Panel)
+Grafik komparasi 9 panel menampilkan hasil evaluasi seluruh filter spasial:
 
 ![Hasil Filter Spasial](hasil_filter_spasial.png)
 
-> **Analisis Hasil Komparatif:**
-> 1. **Restorasi Warna Penuh pada Smoothing & Sharpening:**
->    - Citra masukan tetap tampil dalam warna aslinya (*RGB*).
->    - **Mean & Gaussian Filter:** Menghaluskan variasi intensitas pada citra dengan warna asli yang tetap lembut dan natural.
->    - **Median Filter:** **Membersihkan 100% bintik Salt-and-Pepper** dan mengembalikan warna objek secara utuh tanpa meninggalkan bekas noda noise.
->    - **Laplacian Sharpening:** Meningkatkan ketajaman tepi, kontur, dan tekstur objek dengan warna asli yang tetap hidup dan kontras.
-> 2. **Deteksi Tepi Sobel ($G_x$, $G_y$, Magnitude):**
->    - $G_x$ menonjolkan garis tepi vertikal objek.
->    - $G_y$ menonjolkan garis tepi horizontal objek.
->    - *Magnitude* menggabungkan kedua komponen menjadi peta kontur dan batas bentuk objek secara lengkap.
+Analisis hasil eksperimen:
+1. **Penghalusan dan Penajaman dengan Restorasi Warna:**
+   - **Mean & Gaussian Filter:** Menghaluskan variasi frekuensi tinggi pada citra. Gaussian filter mempertahankan transisi batas yang lebih wajar dibandingkan perataan seragam Mean filter.
+   - **Median Filter:** Mengeliminasi derau impulsif bintik putih dan hitam seraya mempertahankan batas tepi dan warna objek asli.
+   - **Laplacian Sharpening:** Meningkatkan kontras lokal pada garis tepi dan tekstur objek tanpa merusak konsistensi warna.
+2. **Deteksi Tepi Sobel ($G_x$, $G_y$, Magnitudo):**
+   - $G_x$ merespons gradien intensitas arah horizontal (menonjolkan garis tepi vertikal).
+   - $G_y$ merespons gradien intensitas arah vertikal (menonjolkan garis tepi horizontal).
+   - Magnitudo gradien menggabungkan kedua komponen menjadi representasi batas tepi objek secara menyeluruh.
 
 ---
 
-## 💻 Cara Menjalankan Berkas
-Masuk ke direktori tugas ini lalu jalankan:
+## Panduan Menjalankan Program
+
+Jalankan perintah berikut di terminal:
 ```bash
-python 3-filter-spasial.py
+python 3-filter-spasial/3-filter-spasial.py
 ```
-Hasil visualisasi komparatif 9 panel akan langsung ditampilkan di layar dan tersimpan ke berkas `hasil_filter_spasial.png`.
+Grafik perbandingan 9 panel akan ditampilkan di layar dan tersimpan sebagai `hasil_filter_spasial.png`.
